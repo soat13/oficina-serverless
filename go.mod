@@ -1,3 +1,3 @@
-module github.com/soat13/oficina-serveless
+module github.com/soat13/oficina-serverless
 
 go 1.26
