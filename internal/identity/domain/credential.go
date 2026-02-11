@@ -1,7 +1,7 @@
-package identity
+package domain
 
 import (
-	"github.com/soat13/oficina-serverless/internal/domain/shared/cpf"
+	"github.com/soat13/oficina-serverless/internal/shared/cpf"
 )
 
 type Credential struct {

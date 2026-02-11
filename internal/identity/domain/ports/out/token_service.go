@@ -3,7 +3,7 @@ package out
 import (
 	"context"
 
-	"github.com/soat13/oficina-serverless/internal/domain/shared/token"
+	"github.com/soat13/oficina-serverless/internal/shared/token"
 )
 
 type TokenService interface {

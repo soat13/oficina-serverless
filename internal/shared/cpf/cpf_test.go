@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/soat13/oficina-serverless/internal/domain/shared/cpf"
+	"github.com/soat13/oficina-serverless/internal/shared/cpf"
 )
 
 func TestParse(t *testing.T) {
