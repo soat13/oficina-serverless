@@ -24,6 +24,7 @@ func TestParse(t *testing.T) {
 		// invalid - check digits
 		{"invalid_wrong_check_digit", "52998224724", true, ""},
 		{"invalid_common_fake", "12345678900", true, ""},
+		{"invalid_wrong_first_check_digit", "00000000100", true, ""},
 
 		// invalid - length
 		{"invalid_too_short", "123", true, ""},
