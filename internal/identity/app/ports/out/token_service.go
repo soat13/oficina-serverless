@@ -2,8 +2,14 @@ package out
 
 import (
 	"context"
+	"errors"
 
 	"github.com/soat13/oficina-serverless/internal/shared/token"
+)
+
+var (
+	ErrInvalidToken = errors.New("invalid token")
+	ErrTokenExpired = errors.New("token expired")
 )
 
 type TokenService interface {
