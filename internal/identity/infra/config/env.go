@@ -6,6 +6,7 @@ import (
 )
 
 type Config struct {
+	DBDSN     string
 	JWTSecret string
 	JWTIssuer string
 	JWTTTL    int64 // seconds
@@ -13,6 +14,7 @@ type Config struct {
 
 func Load() Config {
 	return Config{
+		DBDSN:     os.Getenv("DB_DSN"),
 		JWTSecret: os.Getenv("JWT_SECRET"),
 		JWTIssuer: os.Getenv("JWT_ISSUER"),
 		JWTTTL:    readInt64("JWT_TTL", 3600),
@@ -20,7 +22,7 @@ func Load() Config {
 }
 
 func (c Config) Valid() bool {
-	return c.JWTSecret != "" && c.JWTIssuer != "" && c.JWTTTL > 0
+	return c.JWTSecret != "" && c.JWTIssuer != "" && c.JWTTTL > 0 && c.DBDSN != ""
 }
 
 func readInt64(key string, def int64) int64 {
