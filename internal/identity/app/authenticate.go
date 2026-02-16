@@ -2,19 +2,16 @@ package app
 
 import (
 	"context"
-	"errors"
 
-	out2 "github.com/soat13/oficina-serverless/internal/identity/app/ports/out"
+	"github.com/soat13/oficina-serverless/internal/identity/app/ports/out"
 	"github.com/soat13/oficina-serverless/internal/shared/cpf"
 	"github.com/soat13/oficina-serverless/internal/shared/token"
 )
 
-var ErrInvalidCredentials = errors.New("invalid credentials")
-
 type Authenticate struct {
-	credentialRepository out2.CredentialRepository
-	passwordService      out2.PasswordService
-	tokenService         out2.TokenService
+	credentialRepository out.CredentialRepository
+	passwordService      out.PasswordService
+	tokenService         out.TokenService
 	tokenTTLSeconds      int64
 }
 
@@ -28,9 +25,9 @@ type AuthenticateOutput struct {
 }
 
 func NewAuthenticate(
-	credentialRepository out2.CredentialRepository,
-	passwordService out2.PasswordService,
-	tokenService out2.TokenService,
+	credentialRepository out.CredentialRepository,
+	passwordService out.PasswordService,
+	tokenService out.TokenService,
 	ttl int64,
 ) Authenticate {
 	return Authenticate{
