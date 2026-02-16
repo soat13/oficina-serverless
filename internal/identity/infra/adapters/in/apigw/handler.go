@@ -10,18 +10,16 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/soat13/oficina-serverless/internal/identity/app"
 
-	"github.com/soat13/oficina-serverless/internal/identity/app/ports/out"
 	"github.com/soat13/oficina-serverless/internal/shared/token"
 )
 
 type Handler struct {
 	authenticate app.Authenticate
 	verify       app.Verify
-	ttlSecs      int64
 }
 
-func NewHandler(auth app.Authenticate, verify app.Verify, ttlSecs int64) *Handler {
-	return &Handler{authenticate: auth, verify: verify, ttlSecs: ttlSecs}
+func NewHandler(auth app.Authenticate, verify app.Verify) *Handler {
+	return &Handler{authenticate: auth, verify: verify}
 }
 
 func (h *Handler) Handle(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -50,7 +48,6 @@ func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayV2HTTPRequ
 	return jsonOK(http.StatusOK, TokenResponse{
 		AccessToken: string(outputDTO.AccessToken),
 		TokenType:   "Bearer",
-		ExpiresIn:   h.ttlSecs,
 	})
 }
 
@@ -65,9 +62,10 @@ func (h *Handler) PostVerify(ctx context.Context, req events.APIGatewayV2HTTPReq
 
 	sub, err := h.verify.Execute(ctx, token.Token(body.Token))
 	if err != nil {
-		if errors.Is(err, out.ErrTokenExpired) {
+		if errors.Is(err, app.ErrTokenExpired) {
 			return jsonError(http.StatusUnauthorized, "token_expired")
 		}
+
 		return jsonError(http.StatusUnauthorized, "invalid_token")
 	}
 
