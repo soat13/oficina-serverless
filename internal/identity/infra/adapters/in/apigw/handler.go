@@ -17,11 +17,10 @@ import (
 type Handler struct {
 	authenticate app.Authenticate
 	verify       app.Verify
-	ttlSecs      int64
 }
 
-func NewHandler(auth app.Authenticate, verify app.Verify, ttlSecs int64) *Handler {
-	return &Handler{authenticate: auth, verify: verify, ttlSecs: ttlSecs}
+func NewHandler(auth app.Authenticate, verify app.Verify) *Handler {
+	return &Handler{authenticate: auth, verify: verify}
 }
 
 func (h *Handler) Handle(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -50,7 +49,6 @@ func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayV2HTTPRequ
 	return jsonOK(http.StatusOK, TokenResponse{
 		AccessToken: string(outputDTO.AccessToken),
 		TokenType:   "Bearer",
-		ExpiresIn:   h.ttlSecs,
 	})
 }
 
