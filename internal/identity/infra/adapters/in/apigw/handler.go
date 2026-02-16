@@ -8,27 +8,20 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/soat13/oficina-serverless/internal/identity/app"
 
 	"github.com/soat13/oficina-serverless/internal/identity/app/ports/out"
 	"github.com/soat13/oficina-serverless/internal/shared/token"
 )
 
-type Authenticator interface {
-	Authenticate(ctx context.Context, cpf string, password string) (token.Token, error)
-}
-
-type Verifier interface {
-	Verify(ctx context.Context, tk token.Token) (token.Subject, error)
-}
-
 type Handler struct {
-	auth    Authenticator
-	verify  Verifier
-	ttlSecs int64
+	authenticate app.Authenticate
+	verify       app.Verify
+	ttlSecs      int64
 }
 
-func NewHandler(auth Authenticator, verify Verifier, ttlSecs int64) *Handler {
-	return &Handler{auth: auth, verify: verify, ttlSecs: ttlSecs}
+func NewHandler(auth app.Authenticate, verify app.Verify, ttlSecs int64) *Handler {
+	return &Handler{authenticate: auth, verify: verify, ttlSecs: ttlSecs}
 }
 
 func (h *Handler) Handle(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -44,13 +37,18 @@ func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayV2HTTPRequ
 		return jsonError(http.StatusBadRequest, "cpf_and_password_required")
 	}
 
-	tk, err := h.auth.Authenticate(ctx, body.CPF, body.Password)
+	inputDTO := app.AuthenticateInput{
+		CPF:      body.CPF,
+		Password: body.Password,
+	}
+
+	outputDTO, err := h.authenticate.Execute(ctx, inputDTO)
 	if err != nil {
 		return jsonError(http.StatusUnauthorized, "invalid_credentials")
 	}
 
 	return jsonOK(http.StatusOK, TokenResponse{
-		AccessToken: string(tk),
+		AccessToken: string(outputDTO.AccessToken),
 		TokenType:   "Bearer",
 		ExpiresIn:   h.ttlSecs,
 	})
@@ -65,7 +63,7 @@ func (h *Handler) PostVerify(ctx context.Context, req events.APIGatewayV2HTTPReq
 		return jsonError(http.StatusBadRequest, "token_required")
 	}
 
-	sub, err := h.verify.Verify(ctx, token.Token(body.Token))
+	sub, err := h.verify.Execute(ctx, token.Token(body.Token))
 	if err != nil {
 		if errors.Is(err, out.ErrTokenExpired) {
 			return jsonError(http.StatusUnauthorized, "token_expired")
