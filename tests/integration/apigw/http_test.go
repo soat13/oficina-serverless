@@ -140,6 +140,19 @@ func TestAuthE2E(t *testing.T) {
 		}
 	})
 
+	t.Run("POST /auth/token -> user not found", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{
+			"cpf":      "03940582166",
+			"password": "123",
+		})
+
+		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+
+		if resp.StatusCode != 401 {
+			t.Fatalf("expected 401, got %d body=%s", resp.StatusCode, resp.Body)
+		}
+	})
+
 	t.Run("POST /auth/token -> invalid password", func(t *testing.T) {
 		insertUser(t, db, "user-1", "52998224725", "123")
 

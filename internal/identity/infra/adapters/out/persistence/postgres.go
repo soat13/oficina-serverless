@@ -36,10 +36,7 @@ func (r *PostgresCredentialRepository) FindByCPF(ctx context.Context, c cpf.CPF)
 		return domain.Credential{}, err
 	}
 
-	parsedCPF, err := cpf.Parse(row.CPF)
-	if err != nil {
-		return domain.Credential{}, err
-	}
+	parsedCPF, _ := cpf.Parse(row.CPF)
 
 	return domain.Credential{
 		ID:           row.ID,
