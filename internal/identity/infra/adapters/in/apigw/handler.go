@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/soat13/oficina-serverless/internal/identity/app"
 
-	"github.com/soat13/oficina-serverless/internal/identity/app/ports/out"
 	"github.com/soat13/oficina-serverless/internal/shared/token"
 )
 
@@ -63,9 +62,10 @@ func (h *Handler) PostVerify(ctx context.Context, req events.APIGatewayV2HTTPReq
 
 	sub, err := h.verify.Execute(ctx, token.Token(body.Token))
 	if err != nil {
-		if errors.Is(err, out.ErrTokenExpired) {
+		if errors.Is(err, app.ErrTokenExpired) {
 			return jsonError(http.StatusUnauthorized, "token_expired")
 		}
+
 		return jsonError(http.StatusUnauthorized, "invalid_token")
 	}
 

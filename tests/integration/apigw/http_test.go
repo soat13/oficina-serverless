@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/golang-jwt/jwt/v5"
 	identitybootstrap "github.com/soat13/oficina-serverless/internal/bootstrap/identity"
 	"github.com/soat13/oficina-serverless/internal/container"
 	"github.com/soat13/oficina-serverless/internal/identity/infra/adapters/in/apigw"
@@ -309,4 +311,38 @@ func TestAuthE2E(t *testing.T) {
 			t.Fatalf("expected 404, got %d body=%s", resp.StatusCode, resp.Body)
 		}
 	})
+
+	t.Run("POST /auth/verify -> expired token", func(t *testing.T) {
+
+		claims := jwt.RegisteredClaims{
+			Issuer:    testIssuer,
+			Subject:   "user-1",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+		}
+
+		tk := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signed, err := tk.SignedString([]byte(testSecret))
+		if err != nil {
+			t.Fatalf("sign token: %v", err)
+		}
+
+		verifyBody, _ := json.Marshal(map[string]string{
+			"token": signed,
+		})
+
+		verifyResp := post(t, handler, ctx, "/auth/verify", string(verifyBody), false)
+
+		if verifyResp.StatusCode != 401 {
+			t.Fatalf("expected 401, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
+		}
+
+		var errResp apigw.ErrorResponse
+		_ = json.Unmarshal([]byte(verifyResp.Body), &errResp)
+
+		if errResp.Error != "token_expired" {
+			t.Fatalf("expected token_expired, got %q body=%s", errResp.Error, verifyResp.Body)
+		}
+	})
+
 }
