@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-lambda-go v1.52.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang/mock v1.6.0
+	github.com/joho/godotenv v1.5.1
 	github.com/uptrace/bun v1.2.16
 	github.com/uptrace/bun/dialect/pgdialect v1.2.16
 	github.com/uptrace/bun/driver/pgdriver v1.2.16

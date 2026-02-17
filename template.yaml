@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  DbDsn:
+    Type: String
+    NoEcho: true
+  JwtSecret:
+    Type: String
+    NoEcho: true
+  JwtIssuer:
+    Type: String
+  JwtTtl:
+    Type: String
+
+Globals:
+  Function:
+    Runtime: provided.al2
+    Architectures: [arm64]
+    Timeout: 10
+    MemorySize: 256
+
+Resources:
+  IdentityHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+
+  IdentityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Role: arn:aws:iam::758347047365:role/LabRole
+      Environment:
+        Variables:
+          DB_DSN: !Ref DbDsn
+          JWT_SECRET: !Ref JwtSecret
+          JWT_ISSUER: !Ref JwtIssuer
+          JWT_TTL: !Ref JwtTtl
+      Events:
+        Token:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref IdentityHttpApi
+            Path: /auth/token
+            Method: POST
+        Verify:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref IdentityHttpApi
+            Path: /auth/verify
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+
+  IdentityFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${IdentityFunction}"
+      RetentionInDays: 14
+
+Outputs:
+  ApiUrl:
+    Description: URL base do HttpApi
+    Value: !GetAtt IdentityHttpApi.ApiEndpoint

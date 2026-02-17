@@ -46,15 +46,16 @@ func setup(t *testing.T) (*bun.DB, *apigw.Handler) {
 	t.Cleanup(func() { _ = c.Close() })
 
 	_, err = c.DB.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS users (
+		DROP TABLE IF EXISTS users;
+
+		CREATE TABLE users (
 			id TEXT PRIMARY KEY,
-			cpf TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL,
-			roles JSONB NOT NULL DEFAULT '[]'::jsonb
+			document TEXT NOT NULL UNIQUE,
+			password TEXT NOT NULL
 		);
 	`)
 	if err != nil {
-		t.Fatalf("create table: %v", err)
+		t.Fatalf("reset table: %v", err)
 	}
 
 	mod, err := identitybootstrap.Setup(c)
@@ -70,10 +71,10 @@ func insertUser(t *testing.T, db *bun.DB, id, cpfVal, password string) {
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
-	_, _ = db.ExecContext(ctx, `DELETE FROM users WHERE cpf = ?`, cpfVal)
+	_, _ = db.ExecContext(ctx, `DELETE FROM users WHERE document = ?`, cpfVal)
 
 	_, err := db.ExecContext(ctx,
-		`INSERT INTO users(id, cpf, password_hash, roles) VALUES (?,?,?,'[]')`,
+		`INSERT INTO users(id, document, password) VALUES (?,?,?)`,
 		id, cpfVal, string(hash),
 	)
 	if err != nil {

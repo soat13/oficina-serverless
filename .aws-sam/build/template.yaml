@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: oficina-serverless identity api
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: provided.al2
+    Architectures:
+    - arm64
+Resources:
+  IdentityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: oficina-serverless-identity
+      CodeUri: IdentityFunction
+      Handler: bootstrap
+      Role: arn:aws:iam::758347047365:role/LabRole
+      Events:
+        Token:
+          Type: HttpApi
+          Properties:
+            Path: /auth/token
+            Method: POST
+        Verify:
+          Type: HttpApi
+          Properties:
+            Path: /auth/verify
+            Method: POST
+      Environment:
+        Variables:
+          DB_DSN: ''
+          JWT_SECRET: ''
+          JWT_ISSUER: ''
+          JWT_TTL: ''
+    Metadata:
+      BuildMethod: makefile
+      SamResourceId: IdentityFunction

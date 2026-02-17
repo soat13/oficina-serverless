@@ -17,11 +17,14 @@ func New() out.PasswordService {
 
 func (s *BCryptService) Compare(_ context.Context, plain string, hash string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain))
-	if err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return false, nil
-		}
-		return false, err
+
+	if err == nil {
+		return true, nil
 	}
-	return true, nil
+
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return false, nil
+	}
+
+	return false, err
 }
