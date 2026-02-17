@@ -108,7 +108,7 @@ func TestAuthE2E(t *testing.T) {
 			"password": "123",
 		})
 
-		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+		resp := post(t, handler, ctx, "/token", string(body), false)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200, got %d body=%s", resp.StatusCode, resp.Body)
@@ -128,7 +128,7 @@ func TestAuthE2E(t *testing.T) {
 			"password": "",
 		})
 
-		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+		resp := post(t, handler, ctx, "/token", string(body), false)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
@@ -147,7 +147,7 @@ func TestAuthE2E(t *testing.T) {
 			"password": "123",
 		})
 
-		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+		resp := post(t, handler, ctx, "/token", string(body), false)
 
 		if resp.StatusCode != 401 {
 			t.Fatalf("expected 401, got %d body=%s", resp.StatusCode, resp.Body)
@@ -162,7 +162,7 @@ func TestAuthE2E(t *testing.T) {
 			"password": "wrong",
 		})
 
-		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+		resp := post(t, handler, ctx, "/token", string(body), false)
 
 		if resp.StatusCode != 401 {
 			t.Fatalf("expected 401, got %d body=%s", resp.StatusCode, resp.Body)
@@ -170,7 +170,7 @@ func TestAuthE2E(t *testing.T) {
 	})
 
 	t.Run("POST /auth/token -> invalid json", func(t *testing.T) {
-		resp := post(t, handler, ctx, "/auth/token", "{invalid-json", false)
+		resp := post(t, handler, ctx, "/token", "{invalid-json", false)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
@@ -178,7 +178,7 @@ func TestAuthE2E(t *testing.T) {
 	})
 
 	t.Run("POST /auth/token -> empty body", func(t *testing.T) {
-		resp := post(t, handler, ctx, "/auth/token", "", false)
+		resp := post(t, handler, ctx, "/token", "", false)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
@@ -191,7 +191,7 @@ func TestAuthE2E(t *testing.T) {
 		raw := `{"cpf":"52998224725","password":"123"}`
 		encoded := base64.StdEncoding.EncodeToString([]byte(raw))
 
-		resp := post(t, handler, ctx, "/auth/token", encoded, true)
+		resp := post(t, handler, ctx, "/token", encoded, true)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200, got %d body=%s", resp.StatusCode, resp.Body)
@@ -206,7 +206,7 @@ func TestAuthE2E(t *testing.T) {
 	})
 
 	t.Run("POST /auth/token -> base64 body invalid", func(t *testing.T) {
-		resp := post(t, handler, ctx, "/auth/token", "###not-base64###", true)
+		resp := post(t, handler, ctx, "/token", "###not-base64###", true)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
@@ -220,7 +220,7 @@ func TestAuthE2E(t *testing.T) {
 			"cpf":      "52998224725",
 			"password": "123",
 		})
-		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+		resp := post(t, handler, ctx, "/token", string(body), false)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200 generating token, got %d body=%s", resp.StatusCode, resp.Body)
@@ -232,7 +232,7 @@ func TestAuthE2E(t *testing.T) {
 		verifyBody, _ := json.Marshal(map[string]string{
 			"token": tokenResp.AccessToken,
 		})
-		verifyResp := post(t, handler, ctx, "/auth/verify", string(verifyBody), false)
+		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
 
 		if verifyResp.StatusCode != 200 {
 			t.Fatalf("expected 200, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -240,7 +240,7 @@ func TestAuthE2E(t *testing.T) {
 	})
 
 	t.Run("POST /auth/verify -> invalid json", func(t *testing.T) {
-		verifyResp := post(t, handler, ctx, "/auth/verify", "{invalid-json", false)
+		verifyResp := post(t, handler, ctx, "/introspect", "{invalid-json", false)
 
 		if verifyResp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -248,7 +248,7 @@ func TestAuthE2E(t *testing.T) {
 	})
 
 	t.Run("POST /auth/verify -> empty body", func(t *testing.T) {
-		verifyResp := post(t, handler, ctx, "/auth/verify", "", false)
+		verifyResp := post(t, handler, ctx, "/introspect", "", false)
 
 		if verifyResp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -259,7 +259,7 @@ func TestAuthE2E(t *testing.T) {
 		verifyBody, _ := json.Marshal(map[string]string{
 			"nope": "x",
 		})
-		verifyResp := post(t, handler, ctx, "/auth/verify", string(verifyBody), false)
+		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
 
 		if verifyResp.StatusCode != 401 && verifyResp.StatusCode != 400 {
 			t.Fatalf("expected 401 or 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -270,7 +270,7 @@ func TestAuthE2E(t *testing.T) {
 		verifyBody, _ := json.Marshal(map[string]string{
 			"token": "not-a-jwt",
 		})
-		verifyResp := post(t, handler, ctx, "/auth/verify", string(verifyBody), false)
+		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
 
 		if verifyResp.StatusCode != 401 {
 			t.Fatalf("expected 401, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -284,7 +284,7 @@ func TestAuthE2E(t *testing.T) {
 			"cpf":      "52998224725",
 			"password": "123",
 		})
-		resp := post(t, handler, ctx, "/auth/token", string(body), false)
+		resp := post(t, handler, ctx, "/token", string(body), false)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200 generating token, got %d body=%s", resp.StatusCode, resp.Body)
@@ -296,7 +296,7 @@ func TestAuthE2E(t *testing.T) {
 		rawVerify := `{"token":"` + tokenResp.AccessToken + `"}`
 		encoded := base64.StdEncoding.EncodeToString([]byte(rawVerify))
 
-		verifyResp := post(t, handler, ctx, "/auth/verify", encoded, true)
+		verifyResp := post(t, handler, ctx, "/introspect", encoded, true)
 
 		if verifyResp.StatusCode != 200 {
 			t.Fatalf("expected 200, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -304,7 +304,7 @@ func TestAuthE2E(t *testing.T) {
 	})
 
 	t.Run("POST /auth/verify -> base64 body invalid", func(t *testing.T) {
-		verifyResp := post(t, handler, ctx, "/auth/verify", "###not-base64###", true)
+		verifyResp := post(t, handler, ctx, "/introspect", "###not-base64###", true)
 
 		if verifyResp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
@@ -345,7 +345,7 @@ func TestAuthE2E(t *testing.T) {
 			"token": signed,
 		})
 
-		verifyResp := post(t, handler, ctx, "/auth/verify", string(verifyBody), false)
+		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
 
 		if verifyResp.StatusCode != 401 {
 			t.Fatalf("expected 401, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
