@@ -12,9 +12,9 @@ func Router(ctx context.Context, h *Handler, req events.APIGatewayV2HTTPRequest)
 	path := req.RawPath
 
 	switch {
-	case method == http.MethodPost && path == "/auth/token":
+	case method == http.MethodPost && path == "/token":
 		return h.PostToken(ctx, req)
-	case method == http.MethodPost && path == "/auth/verify":
+	case method == http.MethodPost && path == "/introspect":
 		return h.PostVerify(ctx, req)
 	default:
 		return jsonError(http.StatusNotFound, "not_found")

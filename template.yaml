@@ -43,13 +43,13 @@ Resources:
           Type: HttpApi
           Properties:
             ApiId: !Ref IdentityHttpApi
-            Path: /auth/token
+            Path: /token
             Method: POST
         Verify:
           Type: HttpApi
           Properties:
             ApiId: !Ref IdentityHttpApi
-            Path: /auth/verify
+            Path: /introspect
             Method: POST
     Metadata:
       BuildMethod: makefile
