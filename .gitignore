@@ -1,4 +1,5 @@
 .env
+env.json
 vendor
 .scannerwork
 *.http
@@ -8,3 +9,6 @@ coverage.out
 
 # ide folders
 .idea
+
+# build files
+.aws-sam

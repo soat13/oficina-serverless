@@ -43,7 +43,7 @@ func (uc Authenticate) Execute(ctx context.Context, in AuthenticateInput) (Authe
 	if err != nil {
 		return AuthenticateOutput{}, ErrInvalidCredentials
 	}
-
+	
 	credential, err := uc.credentialRepository.FindByCPF(ctx, parsedCPF)
 	if err != nil {
 		return AuthenticateOutput{}, ErrInvalidCredentials
@@ -55,6 +55,7 @@ func (uc Authenticate) Execute(ctx context.Context, in AuthenticateInput) (Authe
 	}
 
 	subject := token.Subject(credential.ID)
+
 	accessToken, err := uc.tokenService.Sign(ctx, subject, token.SignOptions{TTLSeconds: uc.tokenTTLSeconds})
 	if err != nil {
 		return AuthenticateOutput{}, err

@@ -25,7 +25,7 @@ func (r *PostgresCredentialRepository) FindByCPF(ctx context.Context, c cpf.CPF)
 
 	err := r.db.NewSelect().
 		Model(&row).
-		Where("cpf = ?", c.String()).
+		Where("document = ?", c.String()).
 		Limit(1).
 		Scan(ctx)
 
@@ -41,6 +41,6 @@ func (r *PostgresCredentialRepository) FindByCPF(ctx context.Context, c cpf.CPF)
 	return domain.Credential{
 		ID:           row.ID,
 		CPF:          parsedCPF,
-		PasswordHash: row.PasswordHash,
+		PasswordHash: row.Password,
 	}, nil
 }
