@@ -2,6 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  RestApiId:
+    Type: String
+
+  RestApiRootResourceId:
+    Type: String
+    Description: Root resource id
+
+  LambdaRoleArn:
+    Type: String
+
   DbDsn:
     Type: String
     NoEcho: true
@@ -21,38 +31,90 @@ Globals:
     MemorySize: 256
 
 Resources:
-  IdentityHttpApi:
-    Type: AWS::Serverless::HttpApi
-    Properties:
-      StageName: $default
-
   IdentityFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
       Handler: bootstrap
-      Role: arn:aws:iam::910734739355:role/LabRole
+      Role: !Ref LambdaRoleArn
       Environment:
         Variables:
           DB_DSN: !Ref DbDsn
           JWT_SECRET: !Ref JwtSecret
           JWT_ISSUER: !Ref JwtIssuer
           JWT_TTL: !Ref JwtTtl
-      Events:
-        Token:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref IdentityHttpApi
-            Path: /token
-            Method: POST
-        Verify:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref IdentityHttpApi
-            Path: /introspect
-            Method: POST
     Metadata:
       BuildMethod: makefile
+
+  # /token resource
+  TokenResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApiId
+      ParentId: !Ref RestApiRootResourceId
+      PathPart: token
+
+  IntrospectResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApiId
+      ParentId: !Ref RestApiRootResourceId
+      PathPart: introspect
+
+  TokenPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApiId
+      ResourceId: !Ref TokenResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${IdentityFunction.Arn}/invocations
+
+  IntrospectPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApiId
+      ResourceId: !Ref IntrospectResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${IdentityFunction.Arn}/invocations
+
+  IdentityFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt IdentityFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiId}/*/POST/token
+
+  IdentityFunctionInvokePermissionIntrospect:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt IdentityFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApiId}/*/POST/introspect
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - TokenPostMethod
+      - IntrospectPostMethod
+    Properties:
+      RestApiId: !Ref RestApiId
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestApiId
+      DeploymentId: !Ref ApiDeployment
+      StageName: v1
 
   IdentityFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -62,5 +124,4 @@ Resources:
 
 Outputs:
   ApiUrl:
-    Description: URL base do HttpApi
-    Value: !GetAtt IdentityHttpApi.ApiEndpoint
+    Value: !Sub "https://${RestApiId}.execute-api.${AWS::Region}.amazonaws.com/v1"

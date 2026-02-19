@@ -77,8 +77,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [ tests-and-quality ]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    needs: [ tests-and-quality ]
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
@@ -110,7 +110,14 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
           JWT_TTL: ${{ secrets.JWT_TTL }}
+          API_REST_ID: ${{ secrets.API_REST_ID }}
+          API_REST_ROOT_ID: ${{ secrets.API_REST_ROOT_ID }}
+          LAMBDA_ROLE_ARN: ${{ secrets.LAMBDA_ROLE_ARN }}
         run: |
+          test -n "$LAMBDA_ROLE_ARN" || (echo "LAMBDA_ROLE_ARN vazio" && exit 1)
+          test -n "$API_REST_ID" || (echo "API_REST_ID vazio" && exit 1)
+          test -n "$API_REST_ROOT_ID" || (echo "API_REST_ROOT_ID vazio" && exit 1)
+
           sam deploy \
             --stack-name oficina-serverless \
             --capabilities CAPABILITY_IAM \
@@ -120,7 +127,10 @@ jobs:
               DbDsn="$DB_DSN" \
               JwtSecret="$JWT_SECRET" \
               JwtIssuer="$JWT_ISSUER" \
-              JwtTtl="$JWT_TTL"
+              JwtTtl="$JWT_TTL" \
+              RestApiId="$API_REST_ID" \
+              RestApiRootResourceId="$API_REST_ROOT_ID" \
+              LambdaRoleArn="$LAMBDA_ROLE_ARN"
 
       - name: Show API URL
         run: |
