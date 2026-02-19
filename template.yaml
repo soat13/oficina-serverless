@@ -31,7 +31,7 @@ Resources:
     Properties:
       CodeUri: .
       Handler: bootstrap
-      Role: arn:aws:iam::758347047365:role/LabRole
+      Role: arn:aws:iam::910734739355:role/LabRole
       Environment:
         Variables:
           DB_DSN: !Ref DbDsn
