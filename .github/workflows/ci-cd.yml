@@ -2,9 +2,10 @@ name: ci-cd
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ "*" ]
+#    branches: [ main ]
+#  pull_request:
+    branches:
+      - "**"
 
 jobs:
   tests-and-quality:
