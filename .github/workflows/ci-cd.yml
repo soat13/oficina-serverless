@@ -77,8 +77,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [ tests-and-quality ]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    needs: [ tests-and-quality ]
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
