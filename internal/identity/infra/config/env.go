@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -21,8 +23,28 @@ func Load() Config {
 	}
 }
 
-func (c Config) Valid() bool {
-	return c.JWTSecret != "" && c.JWTIssuer != "" && c.JWTTTL > 0 && c.DBDSN != ""
+func (c Config) Validate() error {
+	var missing []string
+
+	if c.DBDSN == "" {
+		missing = append(missing, "DB_DSN")
+	}
+	if c.JWTSecret == "" {
+		missing = append(missing, "JWT_SECRET")
+	}
+	if c.JWTIssuer == "" {
+		missing = append(missing, "JWT_ISSUER")
+	}
+	if c.JWTTTL <= 0 {
+		missing = append(missing, "JWT_TTL (must be > 0)")
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or invalid environment variables: %s",
+			strings.Join(missing, ", "))
+	}
+
+	return nil
 }
 
 func readInt64(key string, def int64) int64 {

@@ -110,6 +110,11 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
           JWT_TTL: ${{ secrets.JWT_TTL }}
+          LAMBDA_ROLE_ARN: ${{ secrets.LAMBDA_ROLE_ARN }}
+
+          VPC_ID: ${{ secrets.VPC_ID }}
+          VPC_SUBNET_IDS: ${{ secrets.VPC_SUBNET_IDS }}
+          RDS_SECURITY_GROUP_ID: ${{ secrets.RDS_SECURITY_GROUP_ID }}
         run: |
           sam deploy \
             --stack-name oficina-serverless \
@@ -120,7 +125,11 @@ jobs:
               DbDsn="$DB_DSN" \
               JwtSecret="$JWT_SECRET" \
               JwtIssuer="$JWT_ISSUER" \
-              JwtTtl="$JWT_TTL"
+              JwtTtl="$JWT_TTL" \
+              LambdaRoleArn="$LAMBDA_ROLE_ARN" \
+              VpcId="$VPC_ID" \
+              VpcSubnetIds="$VPC_SUBNET_IDS" \
+              RdsSecurityGroupId="$RDS_SECURITY_GROUP_ID"
 
       - name: Show API URL
         run: |
