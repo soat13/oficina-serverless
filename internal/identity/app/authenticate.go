@@ -17,7 +17,7 @@ type Authenticate struct {
 }
 
 type AuthenticateInput struct {
-	CPF      string
+	CPF      cpf.CPF
 	Password string
 }
 
@@ -40,12 +40,12 @@ func NewAuthenticate(
 }
 
 func (uc Authenticate) Execute(ctx context.Context, in AuthenticateInput) (AuthenticateOutput, error) {
-	parsedCPF, err := cpf.Parse(in.CPF)
-	if err != nil {
-		return AuthenticateOutput{}, ErrInvalidCredentials
+	if !in.CPF.IsValid() {
+		return AuthenticateOutput{}, cpf.ErrInvalidCPF
 	}
 
-	credential, err := uc.credentialRepository.FindByCPF(ctx, parsedCPF)
+	credential, err := uc.credentialRepository.FindByCPF(ctx, in.CPF)
+
 	if err != nil {
 		log.Printf("failed to find credential by CPF: %+v", err)
 		return AuthenticateOutput{}, ErrInvalidCredentials
