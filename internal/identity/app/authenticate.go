@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log"
 
 	"github.com/soat13/oficina-serverless/internal/identity/app/ports/out"
 	"github.com/soat13/oficina-serverless/internal/shared/cpf"
@@ -43,14 +44,18 @@ func (uc Authenticate) Execute(ctx context.Context, in AuthenticateInput) (Authe
 	if err != nil {
 		return AuthenticateOutput{}, ErrInvalidCredentials
 	}
-	
+
 	credential, err := uc.credentialRepository.FindByCPF(ctx, parsedCPF)
 	if err != nil {
+		log.Printf("failed to find credential by CPF: %+v", err)
 		return AuthenticateOutput{}, ErrInvalidCredentials
 	}
 
 	ok, err := uc.passwordService.Compare(ctx, in.Password, credential.PasswordHash)
 	if err != nil || !ok {
+		if err != nil {
+			log.Printf("password comparison failed: %+v", err)
+		}
 		return AuthenticateOutput{}, ErrInvalidCredentials
 	}
 
@@ -58,6 +63,7 @@ func (uc Authenticate) Execute(ctx context.Context, in AuthenticateInput) (Authe
 
 	accessToken, err := uc.tokenService.Sign(ctx, subject, token.SignOptions{TTLSeconds: uc.tokenTTLSeconds})
 	if err != nil {
+		log.Printf("failed to sign token: %+v", err)
 		return AuthenticateOutput{}, err
 	}
 

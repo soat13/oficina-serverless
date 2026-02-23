@@ -12,6 +12,16 @@ Parameters:
     Type: String
   JwtTtl:
     Type: String
+  LambdaRoleArn:
+    Type: String
+  VpcSubnetIds:
+    Type: List<String>
+
+  VpcId:
+    Type: String
+
+  RdsSecurityGroupId:
+    Type: String
 
 Globals:
   Function:
@@ -26,18 +36,46 @@ Resources:
     Properties:
       StageName: $default
 
+  IdentityLambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for oficina identity lambda
+      VpcId: !Ref VpcId
+      SecurityGroupIngress: []
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+
+  AllowIdentityLambdaToRds5432:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref RdsSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref IdentityLambdaSecurityGroup
+      Description: Allow Identity Lambda to access RDS Postgres on 5432
+
   IdentityFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
       Handler: bootstrap
-      Role: arn:aws:iam::910734739355:role/LabRole
+      Role: !Ref LambdaRoleArn
+
+      VpcConfig:
+        SubnetIds: !Ref VpcSubnetIds
+        SecurityGroupIds:
+          - !Ref IdentityLambdaSecurityGroup
+
       Environment:
         Variables:
           DB_DSN: !Ref DbDsn
           JWT_SECRET: !Ref JwtSecret
           JWT_ISSUER: !Ref JwtIssuer
           JWT_TTL: !Ref JwtTtl
+
       Events:
         Token:
           Type: HttpApi
@@ -64,3 +102,7 @@ Outputs:
   ApiUrl:
     Description: URL base do HttpApi
     Value: !GetAtt IdentityHttpApi.ApiEndpoint
+
+  IdentityLambdaSecurityGroupId:
+    Description: SG ID created for Identity Lambda
+    Value: !Ref IdentityLambdaSecurityGroup

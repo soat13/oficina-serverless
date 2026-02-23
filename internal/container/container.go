@@ -1,8 +1,10 @@
 package container
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -18,11 +20,21 @@ type Container struct {
 }
 
 func New(cfg config.Config) (*Container, error) {
-	if !cfg.Valid() {
-		return nil, fmt.Errorf("invalid configuration")
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("container config validation failed: %w", err)
 	}
 
-	sqlDB := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(cfg.DBDSN)))
+	sqlDB := sql.OpenDB(pgdriver.NewConnector(
+		pgdriver.WithDSN(cfg.DBDSN),
+	))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
 	db := bun.NewDB(sqlDB, pgdialect.New())
 
 	return &Container{

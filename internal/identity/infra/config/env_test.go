@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/soat13/oficina-serverless/internal/identity/infra/config"
@@ -15,20 +16,29 @@ func setValidBaseEnv(t *testing.T) {
 
 func assertValid(t *testing.T, cfg config.Config) {
 	t.Helper()
-	if !cfg.Valid() {
-		t.Fatalf("expected config to be valid")
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("expected config to be valid, got error: %v", err)
 	}
 }
 
-func assertInvalid(t *testing.T, cfg config.Config) {
+func assertInvalidContains(t *testing.T, cfg config.Config, expectedSubstrings ...string) {
 	t.Helper()
-	if cfg.Valid() {
+
+	err := cfg.Validate()
+	if err == nil {
 		t.Fatalf("expected config to be invalid")
+	}
+
+	msg := err.Error()
+	for _, s := range expectedSubstrings {
+		if !strings.Contains(msg, s) {
+			t.Fatalf("expected error to contain %q, got: %q", s, msg)
+		}
 	}
 }
 
 func TestEnvConfig(t *testing.T) {
-	t.Run("success - Load returns values from env and Valid is true", func(t *testing.T) {
+	t.Run("success - Load returns values from env and Validate is nil", func(t *testing.T) {
 		setValidBaseEnv(t)
 		t.Setenv("JWT_TTL", "7200")
 
@@ -46,6 +56,7 @@ func TestEnvConfig(t *testing.T) {
 		if cfg.JWTTTL != 7200 {
 			t.Fatalf("expected JWTTTL %d, got %d", int64(7200), cfg.JWTTTL)
 		}
+
 		assertValid(t, cfg)
 	})
 
@@ -84,35 +95,45 @@ func TestEnvConfig(t *testing.T) {
 		assertValid(t, cfg)
 	})
 
-	t.Run("Valid false - missing DB_DSN", func(t *testing.T) {
+	t.Run("invalid - missing DB_DSN", func(t *testing.T) {
 		setValidBaseEnv(t)
 		t.Setenv("DB_DSN", "")
 
 		cfg := config.Load()
-		assertInvalid(t, cfg)
+		assertInvalidContains(t, cfg, "DB_DSN")
 	})
 
-	t.Run("Valid false - missing secret", func(t *testing.T) {
+	t.Run("invalid - missing secret", func(t *testing.T) {
 		setValidBaseEnv(t)
 		t.Setenv("JWT_SECRET", "")
 
 		cfg := config.Load()
-		assertInvalid(t, cfg)
+		assertInvalidContains(t, cfg, "JWT_SECRET")
 	})
 
-	t.Run("Valid false - missing issuer", func(t *testing.T) {
+	t.Run("invalid - missing issuer", func(t *testing.T) {
 		setValidBaseEnv(t)
 		t.Setenv("JWT_ISSUER", "")
 
 		cfg := config.Load()
-		assertInvalid(t, cfg)
+		assertInvalidContains(t, cfg, "JWT_ISSUER")
 	})
 
-	t.Run("Valid false - non-positive TTL", func(t *testing.T) {
+	t.Run("invalid - non-positive TTL (Validate catches it)", func(t *testing.T) {
 		setValidBaseEnv(t)
-		t.Setenv("JWT_TTL", "0")
+		t.Setenv("JWT_TTL", "-1")
 
 		cfg := config.Load()
-		assertInvalid(t, cfg)
+		assertInvalidContains(t, cfg, "JWT_TTL")
+	})
+
+	t.Run("invalid - multiple missing values shows all of them", func(t *testing.T) {
+		setValidBaseEnv(t)
+		t.Setenv("DB_DSN", "")
+		t.Setenv("JWT_SECRET", "")
+		t.Setenv("JWT_ISSUER", "")
+
+		cfg := config.Load()
+		assertInvalidContains(t, cfg, "DB_DSN", "JWT_SECRET", "JWT_ISSUER")
 	})
 }
