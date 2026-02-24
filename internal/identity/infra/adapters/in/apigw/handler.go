@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/soat13/oficina-serverless/internal/identity/app"
+	"github.com/soat13/oficina-serverless/internal/shared/cpf"
 
 	"github.com/soat13/oficina-serverless/internal/shared/token"
 )
@@ -35,8 +36,13 @@ func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayV2HTTPRequ
 		return jsonError(http.StatusBadRequest, "cpf_and_password_required")
 	}
 
+	userCPF, err := cpf.Parse(body.CPF)
+	if err != nil {
+		return jsonError(http.StatusBadRequest, "invalid_cpf")
+	}
+
 	inputDTO := app.AuthenticateInput{
-		CPF:      body.CPF,
+		CPF:      userCPF,
 		Password: body.Password,
 	}
 

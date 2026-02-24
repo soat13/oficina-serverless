@@ -18,32 +18,32 @@ type CPF struct {
 	value string
 }
 
-func Parse(v string) (CPF, error) {
-	n := onlyNumbers(strings.TrimSpace(v))
+func Parse(value string) (CPF, error) {
+	cpf := CPF{value: onlyNumbers(strings.TrimSpace(value))}
 
-	if !isValid(n) {
+	if !cpf.IsValid() {
 		return CPF{}, ErrInvalidCPF
 	}
 
-	return CPF{value: n}, nil
+	return cpf, nil
 }
 
 func (c CPF) String() string {
 	return c.value
 }
 
-func isValid(cpf string) bool {
-	if len(cpf) != size || hasAllEqualDigits(cpf) {
+func (c CPF) IsValid() bool {
+	if len(c.value) != size || hasAllEqualDigits(c.value) {
 		return false
 	}
 
-	firstCheckDigit := int(cpf[9] - '0')
-	if firstCheckDigit != calculateCheckDigit(cpf, 9, 10) {
+	firstCheckDigit := int(c.value[9] - '0')
+	if firstCheckDigit != calculateCheckDigit(c.value, 9, 10) {
 		return false
 	}
 
-	secondCheckDigit := int(cpf[10] - '0')
-	if secondCheckDigit != calculateCheckDigit(cpf, 10, 11) {
+	secondCheckDigit := int(c.value[10] - '0')
+	if secondCheckDigit != calculateCheckDigit(c.value, 10, 11) {
 		return false
 	}
 

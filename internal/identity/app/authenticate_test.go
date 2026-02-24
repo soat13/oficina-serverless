@@ -42,7 +42,7 @@ func TestAuthenticateExecute(t *testing.T) {
 		uc := app.NewAuthenticate(credentialRepository, passwordService, tokenService, ttl)
 
 		output, err := uc.Execute(ctx, app.AuthenticateInput{
-			CPF:      "529.982.247-25",
+			CPF:      stringToCPF(t, "529.982.247-25"),
 			Password: "plain",
 		})
 
@@ -66,11 +66,11 @@ func TestAuthenticateExecute(t *testing.T) {
 		uc := app.NewAuthenticate(credentialRepository, passwordService, tokenService, ttl)
 
 		_, err := uc.Execute(ctx, app.AuthenticateInput{
-			CPF:      "123",
+			CPF:      cpf.CPF{},
 			Password: "plain",
 		})
 
-		if !errors.Is(err, app.ErrInvalidCredentials) {
+		if !errors.Is(err, cpf.ErrInvalidCPF) {
 			t.Fatalf("expected ErrInvalidCredentials, got %v", err)
 		}
 	})
@@ -92,7 +92,7 @@ func TestAuthenticateExecute(t *testing.T) {
 		uc := app.NewAuthenticate(credentialRepository, passwordService, tokenService, ttl)
 
 		_, err := uc.Execute(ctx, app.AuthenticateInput{
-			CPF:      "52998224725",
+			CPF:      stringToCPF(t, "529.982.247-25"),
 			Password: "plain",
 		})
 		if !errors.Is(err, app.ErrInvalidCredentials) {
@@ -121,7 +121,7 @@ func TestAuthenticateExecute(t *testing.T) {
 		uc := app.NewAuthenticate(repository, passwordService, tokenService, ttl)
 
 		_, err := uc.Execute(ctx, app.AuthenticateInput{
-			CPF:      "52998224725",
+			CPF:      stringToCPF(t, "529.982.247-25"),
 			Password: "plain",
 		})
 		if !errors.Is(err, app.ErrInvalidCredentials) {
@@ -150,7 +150,7 @@ func TestAuthenticateExecute(t *testing.T) {
 		uc := app.NewAuthenticate(credentialRepository, passwordService, tokenService, ttl)
 
 		_, err := uc.Execute(ctx, app.AuthenticateInput{
-			CPF:      "52998224725",
+			CPF:      stringToCPF(t, "529.982.247-25"),
 			Password: "plain",
 		})
 		if !errors.Is(err, app.ErrInvalidCredentials) {
@@ -184,11 +184,19 @@ func TestAuthenticateExecute(t *testing.T) {
 		uc := app.NewAuthenticate(credentialRepository, passwordService, tokenService, ttl)
 
 		_, err := uc.Execute(ctx, app.AuthenticateInput{
-			CPF:      "52998224725",
+			CPF:      stringToCPF(t, "529.982.247-25"),
 			Password: "plain",
 		})
 		if !errors.Is(err, signErr) {
 			t.Fatalf("expected %v, got %v", signErr, err)
 		}
 	})
+}
+
+func stringToCPF(t *testing.T, s string) cpf.CPF {
+	parsed, err := cpf.Parse(s)
+	if err != nil {
+		t.Fatalf("failed to parse CPF %q: %v", s, err)
+	}
+	return parsed
 }
