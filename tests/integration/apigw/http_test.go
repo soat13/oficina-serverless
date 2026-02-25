@@ -100,7 +100,7 @@ func TestAuthE2E(t *testing.T) {
 	ctx := context.Background()
 	db, handler := setup(t)
 
-	t.Run("POST /auth/token -> success", func(t *testing.T) {
+	t.Run("POST /auth/login -> success", func(t *testing.T) {
 		insertUser(t, db, "user-1", "52998224725", "123")
 
 		body, _ := json.Marshal(map[string]string{
@@ -108,7 +108,7 @@ func TestAuthE2E(t *testing.T) {
 			"password": "123",
 		})
 
-		resp := post(t, handler, ctx, "/token", string(body), false)
+		resp := post(t, handler, ctx, "/auth/login", string(body), false)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200, got %d body=%s", resp.StatusCode, resp.Body)
@@ -122,13 +122,13 @@ func TestAuthE2E(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /auth/token -> cpf and password required", func(t *testing.T) {
+	t.Run("POST /auth/login -> cpf and password required", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]string{
 			"cpf":      "",
 			"password": "",
 		})
 
-		resp := post(t, handler, ctx, "/token", string(body), false)
+		resp := post(t, handler, ctx, "/auth/login", string(body), false)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
@@ -141,20 +141,20 @@ func TestAuthE2E(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /auth/token -> user not found", func(t *testing.T) {
+	t.Run("POST /auth/login -> user not found", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]string{
 			"cpf":      "03940582166",
 			"password": "123",
 		})
 
-		resp := post(t, handler, ctx, "/token", string(body), false)
+		resp := post(t, handler, ctx, "/auth/login", string(body), false)
 
 		if resp.StatusCode != 401 {
 			t.Fatalf("expected 401, got %d body=%s", resp.StatusCode, resp.Body)
 		}
 	})
 
-	t.Run("POST /auth/token -> invalid password", func(t *testing.T) {
+	t.Run("POST /auth/login -> invalid password", func(t *testing.T) {
 		insertUser(t, db, "user-1", "52998224725", "123")
 
 		body, _ := json.Marshal(map[string]string{
@@ -162,36 +162,36 @@ func TestAuthE2E(t *testing.T) {
 			"password": "wrong",
 		})
 
-		resp := post(t, handler, ctx, "/token", string(body), false)
+		resp := post(t, handler, ctx, "/auth/login", string(body), false)
 
 		if resp.StatusCode != 401 {
 			t.Fatalf("expected 401, got %d body=%s", resp.StatusCode, resp.Body)
 		}
 	})
 
-	t.Run("POST /auth/token -> invalid json", func(t *testing.T) {
-		resp := post(t, handler, ctx, "/token", "{invalid-json", false)
+	t.Run("POST /auth/login -> invalid json", func(t *testing.T) {
+		resp := post(t, handler, ctx, "/auth/login", "{invalid-json", false)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
 		}
 	})
 
-	t.Run("POST /auth/token -> empty body", func(t *testing.T) {
-		resp := post(t, handler, ctx, "/token", "", false)
+	t.Run("POST /auth/login -> empty body", func(t *testing.T) {
+		resp := post(t, handler, ctx, "/auth/login", "", false)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
 		}
 	})
 
-	t.Run("POST /auth/token -> base64 body valid", func(t *testing.T) {
+	t.Run("POST /auth/login -> base64 body valid", func(t *testing.T) {
 		insertUser(t, db, "user-1", "52998224725", "123")
 
 		raw := `{"cpf":"52998224725","password":"123"}`
 		encoded := base64.StdEncoding.EncodeToString([]byte(raw))
 
-		resp := post(t, handler, ctx, "/token", encoded, true)
+		resp := post(t, handler, ctx, "/auth/login", encoded, true)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200, got %d body=%s", resp.StatusCode, resp.Body)
@@ -205,8 +205,8 @@ func TestAuthE2E(t *testing.T) {
 		}
 	})
 
-	t.Run("POST /auth/token -> base64 body invalid", func(t *testing.T) {
-		resp := post(t, handler, ctx, "/token", "###not-base64###", true)
+	t.Run("POST /auth/login -> base64 body invalid", func(t *testing.T) {
+		resp := post(t, handler, ctx, "/auth/login", "###not-base64###", true)
 
 		if resp.StatusCode != 400 {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
@@ -220,7 +220,7 @@ func TestAuthE2E(t *testing.T) {
 			"cpf":      "52998224725",
 			"password": "123",
 		})
-		resp := post(t, handler, ctx, "/token", string(body), false)
+		resp := post(t, handler, ctx, "/auth/login", string(body), false)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200 generating token, got %d body=%s", resp.StatusCode, resp.Body)
@@ -284,7 +284,7 @@ func TestAuthE2E(t *testing.T) {
 			"cpf":      "52998224725",
 			"password": "123",
 		})
-		resp := post(t, handler, ctx, "/token", string(body), false)
+		resp := post(t, handler, ctx, "/auth/login", string(body), false)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("expected 200 generating token, got %d body=%s", resp.StatusCode, resp.Body)

@@ -12,7 +12,7 @@ func Router(ctx context.Context, h *Handler, req events.APIGatewayV2HTTPRequest)
 	path := req.RawPath
 
 	switch {
-	case method == http.MethodPost && path == "/token":
+	case method == http.MethodPost && path == "/auth/login":
 		return h.PostToken(ctx, req)
 	case method == http.MethodPost && path == "/introspect":
 		return h.PostVerify(ctx, req)
