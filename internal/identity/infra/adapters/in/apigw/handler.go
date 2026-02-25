@@ -23,11 +23,11 @@ func NewHandler(auth app.Authenticate, verify app.Verify) *Handler {
 	return &Handler{authenticate: auth, verify: verify}
 }
 
-func (h *Handler) Handle(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+func (h *Handler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return Router(ctx, h, req), nil
 }
 
-func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayV2HTTPRequest) events.APIGatewayV2HTTPResponse {
+func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayProxyRequest) events.APIGatewayProxyResponse {
 	var body TokenRequest
 	if err := decodeJSON(req, &body); err != nil {
 		return jsonError(http.StatusBadRequest, "invalid_body")
@@ -57,7 +57,7 @@ func (h *Handler) PostToken(ctx context.Context, req events.APIGatewayV2HTTPRequ
 	})
 }
 
-func (h *Handler) PostVerify(ctx context.Context, req events.APIGatewayV2HTTPRequest) events.APIGatewayV2HTTPResponse {
+func (h *Handler) PostVerify(ctx context.Context, req events.APIGatewayProxyRequest) events.APIGatewayProxyResponse {
 	var body VerifyRequest
 	if err := decodeJSON(req, &body); err != nil {
 		return jsonError(http.StatusBadRequest, "invalid_body")
@@ -78,7 +78,7 @@ func (h *Handler) PostVerify(ctx context.Context, req events.APIGatewayV2HTTPReq
 	return jsonOK(http.StatusOK, VerifyResponse{Subject: string(sub)})
 }
 
-func decodeJSON(req events.APIGatewayV2HTTPRequest, dst any) error {
+func decodeJSON(req events.APIGatewayProxyRequest, dst any) error {
 	raw := []byte(req.Body)
 	if req.IsBase64Encoded {
 		decoded, err := base64.StdEncoding.DecodeString(req.Body)
@@ -90,9 +90,9 @@ func decodeJSON(req events.APIGatewayV2HTTPRequest, dst any) error {
 	return json.Unmarshal(raw, dst)
 }
 
-func jsonOK(status int, v any) events.APIGatewayV2HTTPResponse {
+func jsonOK(status int, v any) events.APIGatewayProxyResponse {
 	b, _ := json.Marshal(v)
-	return events.APIGatewayV2HTTPResponse{
+	return events.APIGatewayProxyResponse{
 		StatusCode: status,
 		Headers: map[string]string{
 			"content-type": "application/json",
@@ -101,6 +101,6 @@ func jsonOK(status int, v any) events.APIGatewayV2HTTPResponse {
 	}
 }
 
-func jsonError(status int, code string) events.APIGatewayV2HTTPResponse {
+func jsonError(status int, code string) events.APIGatewayProxyResponse {
 	return jsonOK(status, ErrorResponse{Error: code})
 }

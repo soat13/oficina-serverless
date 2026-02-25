@@ -16,11 +16,11 @@ Parameters:
     Type: String
   VpcSubnetIds:
     Type: List<String>
-
   VpcId:
     Type: String
-
   RdsSecurityGroupId:
+    Type: String
+  ExistingRestApiId:
     Type: String
 
 Globals:
@@ -31,11 +31,6 @@ Globals:
     MemorySize: 256
 
 Resources:
-  IdentityHttpApi:
-    Type: AWS::Serverless::HttpApi
-    Properties:
-      StageName: $default
-
   IdentityLambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -45,7 +40,6 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
-
 
   AllowIdentityLambdaToRds5432:
     Type: AWS::EC2::SecurityGroupIngress
@@ -61,6 +55,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
+      FunctionName: !Sub "IdentityFunction"
       Handler: bootstrap
       Role: !Ref LambdaRoleArn
 
@@ -75,22 +70,16 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           JWT_ISSUER: !Ref JwtIssuer
           JWT_TTL: !Ref JwtTtl
-
-      Events:
-        Token:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref IdentityHttpApi
-            Path: /token
-            Method: POST
-        Verify:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref IdentityHttpApi
-            Path: /introspect
-            Method: POST
     Metadata:
       BuildMethod: makefile
+
+  AllowApiGwInvokeIdentityLogin:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IdentityFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ExistingRestApiId}/*/*"
 
   IdentityFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -99,10 +88,6 @@ Resources:
       RetentionInDays: 14
 
 Outputs:
-  ApiUrl:
-    Description: URL base do HttpApi
-    Value: !GetAtt IdentityHttpApi.ApiEndpoint
-
   IdentityLambdaSecurityGroupId:
     Description: SG ID created for Identity Lambda
     Value: !Ref IdentityLambdaSecurityGroup

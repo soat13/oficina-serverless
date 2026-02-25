@@ -22,7 +22,7 @@ func Setup(container *container.Container) (*Module, error) {
 
 	credentialRepository := persistence.New(container.DB)
 	passwordService := passwordadapter.New()
-	jwtService := tokenadapter.New(container.Cfg.JWTSecret, container.Cfg.JWTSecret)
+	jwtService := tokenadapter.New(container.Cfg.JWTSecret, container.Cfg.JWTIssuer)
 
 	h := apigw.NewHandler(
 		app.NewAuthenticate(credentialRepository, passwordService, jwtService, container.Cfg.JWTTTL),
