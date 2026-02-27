@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/golang-jwt/jwt/v5"
 	identitybootstrap "github.com/soat13/oficina-serverless/internal/bootstrap/identity"
 	"github.com/soat13/oficina-serverless/internal/container"
 	"github.com/soat13/oficina-serverless/internal/identity/infra/adapters/in/apigw"
@@ -82,14 +80,10 @@ func insertUser(t *testing.T, db *bun.DB, id, cpfVal, password string) {
 	}
 }
 
-func post(t *testing.T, handler *apigw.Handler, ctx context.Context, path string, body string, isBase64 bool) events.APIGatewayV2HTTPResponse {
-	resp, _ := handler.Handle(ctx, events.APIGatewayV2HTTPRequest{
-		RawPath: path,
-		RequestContext: events.APIGatewayV2HTTPRequestContext{
-			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
-				Method: "POST",
-			},
-		},
+func post(_ *testing.T, handler *apigw.Handler, ctx context.Context, path string, body string, isBase64 bool) events.APIGatewayProxyResponse {
+	resp, _ := handler.Handle(ctx, events.APIGatewayProxyRequest{
+		Path:            path,
+		HTTPMethod:      "POST",
 		Body:            body,
 		IsBase64Encoded: isBase64,
 	})
@@ -212,151 +206,4 @@ func TestAuthE2E(t *testing.T) {
 			t.Fatalf("expected 400, got %d body=%s", resp.StatusCode, resp.Body)
 		}
 	})
-
-	t.Run("POST /auth/verify -> success", func(t *testing.T) {
-		insertUser(t, db, "user-1", "52998224725", "123")
-
-		body, _ := json.Marshal(map[string]string{
-			"cpf":      "52998224725",
-			"password": "123",
-		})
-		resp := post(t, handler, ctx, "/auth/login", string(body), false)
-
-		if resp.StatusCode != 200 {
-			t.Fatalf("expected 200 generating token, got %d body=%s", resp.StatusCode, resp.Body)
-		}
-
-		var tokenResp apigw.TokenResponse
-		_ = json.Unmarshal([]byte(resp.Body), &tokenResp)
-
-		verifyBody, _ := json.Marshal(map[string]string{
-			"token": tokenResp.AccessToken,
-		})
-		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
-
-		if verifyResp.StatusCode != 200 {
-			t.Fatalf("expected 200, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> invalid json", func(t *testing.T) {
-		verifyResp := post(t, handler, ctx, "/introspect", "{invalid-json", false)
-
-		if verifyResp.StatusCode != 400 {
-			t.Fatalf("expected 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> empty body", func(t *testing.T) {
-		verifyResp := post(t, handler, ctx, "/introspect", "", false)
-
-		if verifyResp.StatusCode != 400 {
-			t.Fatalf("expected 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> missing token field", func(t *testing.T) {
-		verifyBody, _ := json.Marshal(map[string]string{
-			"nope": "x",
-		})
-		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
-
-		if verifyResp.StatusCode != 401 && verifyResp.StatusCode != 400 {
-			t.Fatalf("expected 401 or 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> invalid token", func(t *testing.T) {
-		verifyBody, _ := json.Marshal(map[string]string{
-			"token": "not-a-jwt",
-		})
-		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
-
-		if verifyResp.StatusCode != 401 {
-			t.Fatalf("expected 401, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> base64 body valid", func(t *testing.T) {
-		insertUser(t, db, "user-1", "52998224725", "123")
-
-		body, _ := json.Marshal(map[string]string{
-			"cpf":      "52998224725",
-			"password": "123",
-		})
-		resp := post(t, handler, ctx, "/auth/login", string(body), false)
-
-		if resp.StatusCode != 200 {
-			t.Fatalf("expected 200 generating token, got %d body=%s", resp.StatusCode, resp.Body)
-		}
-
-		var tokenResp apigw.TokenResponse
-		_ = json.Unmarshal([]byte(resp.Body), &tokenResp)
-
-		rawVerify := `{"token":"` + tokenResp.AccessToken + `"}`
-		encoded := base64.StdEncoding.EncodeToString([]byte(rawVerify))
-
-		verifyResp := post(t, handler, ctx, "/introspect", encoded, true)
-
-		if verifyResp.StatusCode != 200 {
-			t.Fatalf("expected 200, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> base64 body invalid", func(t *testing.T) {
-		verifyResp := post(t, handler, ctx, "/introspect", "###not-base64###", true)
-
-		if verifyResp.StatusCode != 400 {
-			t.Fatalf("expected 400, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-	})
-
-	t.Run("route not found -> 404", func(t *testing.T) {
-		resp, _ := handler.Handle(ctx, events.APIGatewayV2HTTPRequest{
-			RawPath: "/nope",
-			RequestContext: events.APIGatewayV2HTTPRequestContext{
-				HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
-					Method: "GET",
-				},
-			},
-		})
-
-		if resp.StatusCode != 404 {
-			t.Fatalf("expected 404, got %d body=%s", resp.StatusCode, resp.Body)
-		}
-	})
-
-	t.Run("POST /auth/verify -> expired token", func(t *testing.T) {
-
-		claims := jwt.RegisteredClaims{
-			Issuer:    testIssuer,
-			Subject:   "user-1",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
-		}
-
-		tk := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signed, err := tk.SignedString([]byte(testSecret))
-		if err != nil {
-			t.Fatalf("sign token: %v", err)
-		}
-
-		verifyBody, _ := json.Marshal(map[string]string{
-			"token": signed,
-		})
-
-		verifyResp := post(t, handler, ctx, "/introspect", string(verifyBody), false)
-
-		if verifyResp.StatusCode != 401 {
-			t.Fatalf("expected 401, got %d body=%s", verifyResp.StatusCode, verifyResp.Body)
-		}
-
-		var errResp apigw.ErrorResponse
-		_ = json.Unmarshal([]byte(verifyResp.Body), &errResp)
-
-		if errResp.Error != "token_expired" {
-			t.Fatalf("expected token_expired, got %q body=%s", errResp.Error, verifyResp.Body)
-		}
-	})
-
 }

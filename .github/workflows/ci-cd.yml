@@ -99,11 +99,6 @@ jobs:
       - name: Build
         run: sam build -t template.yaml
 
-      - name: Delete stack if stuck
-        run: |
-          aws cloudformation delete-stack --stack-name oficina-serverless || true
-          aws cloudformation wait stack-delete-complete --stack-name oficina-serverless || true
-
       - name: Deploy
         env:
           DB_DSN: ${{ secrets.DB_DSN }}
@@ -115,9 +110,10 @@ jobs:
           VPC_ID: ${{ secrets.VPC_ID }}
           VPC_SUBNET_IDS: ${{ secrets.VPC_SUBNET_IDS }}
           RDS_SECURITY_GROUP_ID: ${{ secrets.RDS_SECURITY_GROUP_ID }}
+          EXISTING_REST_API_ID: ${{ secrets.EXISTING_REST_API_ID }}
         run: |
           sam deploy \
-            --stack-name oficina-serverless \
+            --stack-name oficina-serverless-v2 \
             --capabilities CAPABILITY_IAM \
             --no-fail-on-empty-changeset \
             --resolve-s3 \
@@ -129,13 +125,11 @@ jobs:
               LambdaRoleArn="$LAMBDA_ROLE_ARN" \
               VpcId="$VPC_ID" \
               VpcSubnetIds="$VPC_SUBNET_IDS" \
-              RdsSecurityGroupId="$RDS_SECURITY_GROUP_ID"
+              RdsSecurityGroupId="$RDS_SECURITY_GROUP_ID" \
+              ExistingRestApiId="$EXISTING_REST_API_ID"
 
-      - name: Show API URL
+      - name: Show Lambda info
         run: |
-          API_URL=$(aws cloudformation describe-stacks \
-            --stack-name oficina-serverless \
-            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
-            --output text)
-          echo "API_URL=$API_URL" >> $GITHUB_ENV
-          echo "API URL: $API_URL"
+          STACK=oficina-serverless
+          aws cloudformation describe-stacks --stack-name "$STACK" --query "Stacks[0].StackStatus" --output text
+          echo "Lambda function name: IdentityFunction"
