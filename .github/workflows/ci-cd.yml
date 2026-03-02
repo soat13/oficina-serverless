@@ -113,7 +113,7 @@ jobs:
           EXISTING_REST_API_ID: ${{ secrets.EXISTING_REST_API_ID }}
         run: |
           sam deploy \
-            --stack-name oficina-serverless-v2 \
+            --stack-name oficina-serverless-v3 \
             --capabilities CAPABILITY_IAM \
             --no-fail-on-empty-changeset \
             --resolve-s3 \
