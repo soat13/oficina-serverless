@@ -2,64 +2,87 @@
 
 ## Sobre o Projeto
 
-Função **AWS Lambda** responsável por realizar a autenticação de
-usuários através de **CPF e senha**, gerando um **JWT** válido para
-acesso às APIs protegidas do sistema.
+Função **AWS Lambda** responsável por autenticar usuários via **CPF + senha**, gerando um **JWT (HS256)** válido para acesso às APIs protegidas do sistema.
 
-Essa Lambda atua como ponto de entrada de autenticação, sendo invocada
-pelo API Gateway, e executa as seguintes etapas:
+Esta função:
 
-1.  Validação do formato e dígitos verificadores do CPF
-2.  Verificação se o CPF está cadastrado no banco
-3.  Validação da senha informada (bcrypt)
-4.  Geração de JWT assinado (HS256)
-5.  Retorno do token para o client
+- É **stateless**
+- Se integra a um **API Gateway REST já existente**
+- Segue **Arquitetura Hexagonal (Ports & Adapters)**
+- Utiliza PostgreSQL como fonte de identidade
 
-> A Lambda é exposta através de uma **API Gateway existente** (já provisionada).  
-> O endpoint `/auth/token` é roteado para esta função via integração do API Gateway.
-------------------------------------------------------------------------
+---
 
-## Fluxo Simplificado
+# Responsabilidade
 
+A Lambda é responsável exclusivamente por:
+
+1. Validar CPF (formato + dígitos verificadores)
+2. Verificar se o usuário existe no banco
+3. Validar senha com bcrypt
+4. Gerar JWT assinado (HS256)
+5. Retornar token para o cliente
+
+Ela **não realiza autorização**, apenas autenticação.
+
+---
+
+# Integração
+
+A Lambda é integrada a um **API Gateway REST existente**, via integração Lambda Proxy.
+
+Endpoint exposto:
+
+POST `/auth/token`
+
+---
+
+# Fluxo Simplificado
 ```text
-API Gateway
-     │
-     ▼
+Client
+│
+▼
+API Gateway (REST)
+│
+▼
 Identity Lambda
-     │
-     ├─ Valida CPF
-     ├─ Consulta PostgreSQL
-     ├─ Valida senha (bcrypt)
-     ├─ Gera JWT (HS256)
-     ▼
+│
+├─ Valida CPF
+├─ Consulta PostgreSQL
+├─ Valida senha (bcrypt)
+├─ Gera JWT (HS256)
+▼
 Response 200
 ```
 
-------------------------------------------------------------------------
 
-## Endpoint
+---
 
-POST /auth/token
+# Endpoint
 
-### Request
+## POST `/auth/token`
 
-``` json
+Request
+
+```json
 {
   "cpf": "12345678909",
   "password": "minha-senha-123"
 }
 ```
-
-### Response (Sucesso)
-
-``` json
+Response - Http status: 200 (OK)
+```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "Bearer"
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvbiBEb2UiLCJpYXQiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    "type": "Bearer"
 }
 ```
-
-------------------------------------------------------------------------
+Response - Http status: 400 (Bad Request)
+```json
+{
+    "error": "cpf_and_password_required" // others errors
+}
+```
 
 ## Regras de Negócio
 
@@ -123,6 +146,16 @@ Estas variáveis são utilizadas apenas no processo de deploy via GitHub Actions
 - VPC_SUBNET_IDS
 - RDS_SECURITY_GROUP_ID
 
+| Variável | Onde Obter | Caminho no Console AWS               | Exemplo |
+|-----------|------------|--------------------------------------|----------|
+| EXISTING_REST_API_ID | API Gateway | API Gateway → REST APIs → Selecionar API | `a1b2c3d4e5` |
+| LAMBDA_ROLE_ARN | IAM | IAM → Roles                          | `arn:aws:iam::123456789012:role/lambda-identity-role` |
+| VPC_ID | VPC | VPC → Your VPCs                      | `vpc-0abc1234` |
+| VPC_SUBNET_IDS | VPC | VPC → Subnets (privadas)             | `subnet-12345`, `subnet-67890` |
+| RDS_SECURITY_GROUP_ID | EC2 | EC2 → Security Groups                | `sg-0123abc456` |
+| DB_DSN | RDS | RDS → Databases → Endpoint           | `postgres://user:password@endpoint:5432/database?sslmode=require` |
+
+---
 ------------------------------------------------------------------------
 
 ## Segurança
