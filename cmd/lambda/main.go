@@ -4,14 +4,17 @@ import (
 	"log"
 
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/soat13/oficina-serverless/internal/config"
 
 	identitybootstrap "github.com/soat13/oficina-serverless/internal/bootstrap/identity"
 	"github.com/soat13/oficina-serverless/internal/container"
-	"github.com/soat13/oficina-serverless/internal/identity/infra/config"
 )
 
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	c, err := container.New(cfg)
 	if err != nil {

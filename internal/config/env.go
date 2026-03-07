@@ -14,16 +14,22 @@ type Config struct {
 	JWTTTL    int64 // seconds
 }
 
-func Load() Config {
-	return Config{
+func Load() (Config, error) {
+	conf := Config{
 		DBDSN:     os.Getenv("DB_DSN"),
 		JWTSecret: os.Getenv("JWT_SECRET"),
 		JWTIssuer: os.Getenv("JWT_ISSUER"),
 		JWTTTL:    readInt64("JWT_TTL", 3600),
 	}
+
+	if err := conf.validate(); err != nil {
+		return Config{}, err
+	}
+
+	return conf, nil
 }
 
-func (c Config) Validate() error {
+func (c Config) validate() error {
 	var missing []string
 
 	if c.DBDSN == "" {

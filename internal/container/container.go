@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/soat13/oficina-serverless/internal/config"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
-
-	"github.com/soat13/oficina-serverless/internal/identity/infra/config"
 )
 
 type Container struct {
@@ -20,10 +19,6 @@ type Container struct {
 }
 
 func New(cfg config.Config) (*Container, error) {
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("container config validation failed: %w", err)
-	}
-
 	sqlDB := sql.OpenDB(pgdriver.NewConnector(
 		pgdriver.WithDSN(cfg.DBDSN),
 	))

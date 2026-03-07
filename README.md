@@ -171,9 +171,10 @@ Estas variáveis são utilizadas apenas no processo de deploy via GitHub Actions
 
 ### Requisitos
 
--   Go instalado
--   Docker (opcional)
--   PostgreSQL
+### Requisitos
+
+- Go instalado
+- Docker e Docker Compose (para subir o PostgreSQL usado nos testes)
 
 ### Rodando
 
@@ -188,7 +189,13 @@ sam local start-api
 
 ## Testes
 
+Os testes dependem de um banco PostgreSQL que é iniciado via Docker Compose.
+Antes de executar os testes, suba o banco:
+
+```bash
+docker compose up -d
 go test ./...
+```
 
 ------------------------------------------------------------------------
 

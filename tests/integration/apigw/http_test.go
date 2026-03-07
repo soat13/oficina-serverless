@@ -9,9 +9,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	identitybootstrap "github.com/soat13/oficina-serverless/internal/bootstrap/identity"
+	"github.com/soat13/oficina-serverless/internal/config"
 	"github.com/soat13/oficina-serverless/internal/container"
 	"github.com/soat13/oficina-serverless/internal/identity/infra/adapters/in/apigw"
-	"github.com/soat13/oficina-serverless/internal/identity/infra/config"
 	"github.com/uptrace/bun"
 	"golang.org/x/crypto/bcrypt"
 )
