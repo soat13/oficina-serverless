@@ -1,19 +1,48 @@
 # Identity Token Lambda
 
-## Sobre o Projeto
+## Sumário
 
-Função **AWS Lambda** responsável por autenticar usuários via **CPF + senha**, gerando um **JWT (HS256)** válido para acesso às APIs protegidas do sistema.
-
-Esta função:
-
-- É **stateless**
-- Se integra a um **API Gateway REST já existente**
-- Segue **Arquitetura Hexagonal (Ports & Adapters)**
-- Utiliza PostgreSQL como fonte de identidade
+- [Contexto](#contexto)
+- [Stack Tecnológica](#stack-tecnológica)
+- [Responsabilidade](#responsabilidade)
+- [Integração](#integração)
+- [Arquitetura](#arquitetura)
+- [API](#api)
+- [Execução](#execução)
+- [Operação](#operação)
+- [Evoluções Futuras](#evoluções-futuras)
 
 ---
 
-# Responsabilidade
+## Contexto
+
+Este serviço é uma **AWS Lambda** responsável pela autenticação de usuários utilizando **CPF + senha**.
+
+Quando a autenticação é bem-sucedida, a função gera um **JWT (HS256)** que pode ser utilizado para acessar APIs protegidas do sistema.
+
+Características principais:
+
+- Serviço **stateless**
+- Integrado a um **API Gateway REST**
+- Implementado seguindo **Arquitetura Hexagonal (Ports & Adapters)**
+- Utiliza **PostgreSQL** como fonte de identidade
+
+---
+
+## Stack Tecnológica
+
+- Linguagem: Go 1.26+
+- Runtime: AWS Lambda (`provided.al2`)
+- Banco: PostgreSQL 17.6+
+- ORM: Bun
+- Hash de senha: bcrypt
+- Autenticação: JWT (HS256)
+- Infraestrutura: AWS Lambda + API Gateway
+
+
+---
+
+## Responsabilidade
 
 A Lambda é responsável exclusivamente por:
 
@@ -27,42 +56,48 @@ Ela **não realiza autorização**, apenas autenticação.
 
 ---
 
-# Integração
+## Integração
 
-A Lambda é integrada a um **API Gateway REST existente**, via integração Lambda Proxy.
-
-Endpoint exposto:
-
-POST `/auth/token`
+A Lambda é integrada a um **API Gateway REST existente**, via integração **Lambda Proxy**.
 
 ---
 
-# Fluxo Simplificado
+## Fluxo Simplificado
 ```text
 Client
 │
+│ POST /auth/login
 ▼
 API Gateway (REST)
 │
+│ Lambda Proxy Integration
 ▼
-Identity Lambda
+Identity Token Lambda
 │
-├─ Valida CPF
-├─ Consulta PostgreSQL
-├─ Valida senha (bcrypt)
-├─ Gera JWT (HS256)
+├─ Parse do payload
+├─ Validação de CPF
+├─ Consulta de credenciais no PostgreSQL
+├─ Verificação da senha (bcrypt)
+├─ Geração de JWT (HS256)
 ▼
-Response 200
+Response 200 (JWT Token)
 ```
 
 
 ---
+## API
 
-# Endpoint
+### Endpoint
 
-## POST `/auth/token`
+Este serviço expõe uma única operação HTTP através de **AWS API Gateway (Lambda Proxy Integration)**.
 
-Request
+A requisição recebida pela Lambda é um evento `APIGatewayProxyRequest`.
+
+### POST `/auth/login`
+
+Autentica um usuário utilizando **CPF + senha** e retorna um **JWT Bearer Token** utilizado para autenticação nas APIs protegidas.
+
+### Request
 
 ```json
 {
@@ -70,61 +105,54 @@ Request
   "password": "minha-senha-123"
 }
 ```
-Response - Http status: 200 (OK)
+### Response — 200 OK
 ```json
 {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvbiBEb2UiLCJpYXQiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    "token": "...",
     "type": "Bearer"
 }
 ```
-Response - Http status: 400 (Bad Request)
+### Response — 400 Bad Request
 ```json
 {
-    "error": "cpf_and_password_required" // others errors
+    "error": "cpf_and_password_required"
 }
 ```
+Outros códigos de erro podem ser retornados dependendo da validação realizada.
 
-## Regras de Negócio
+### Regras de Negócio
 
 -   CPF inválido → 400 Bad Request
 -   CPF não encontrado → 401 Unauthorized
 -   Senha incorreta → 401 Unauthorized
 -   Sucesso → 200 OK com token JWT
 
-------------------------------------------------------------------------
+---
 
 ## Arquitetura
 
-A função segue princípios de Arquitetura Hexagonal (Ports & Adapters):
+Este serviço segue os princípios de **Arquitetura Hexagonal (Ports & Adapters)**.
 
--   Domain
-    -   Validação de CPF
--   Application
-    -   Caso de uso: GenerateToken
-    -   Interface de repositório de usuário
-    -   Interface de serviço JWT
--   Infrastructure
-    -   Adapter PostgreSQL
-    -   Adapter JWT (HS256)
-    -   Adapter API Gateway
+Para uma explicação detalhada da arquitetura, incluindo fluxos e organização interna do serviço, consulte: **[Architecture Documentation](docs/architecture.md)**
 
-A Lambda é stateless.
+Resumo das camadas:
 
-------------------------------------------------------------------------
+- **Domain**
+    - Validação de CPF
+    - Tipos e erros de domínio
 
-## Stack Tecnológica
+- **Application**
+    - Caso de uso `Authenticate`
+    - Interfaces (Ports)
 
--   Linguagem: Go 1.26+
--   Runtime: provided.al2 (AWS Lambda custom runtime)
--   Banco: PostgreSQL 17.6+
--   ORM: Bun
--   Hash de senha: bcrypt
--   Autenticação: JWT (HS256)
--   Infraestrutura: AWS Lambda + API Gateway
+- **Infrastructure**
+    - PostgreSQL Repository
+    - JWT Service
+    - Lambda Handler
+---
+## Execução
 
-------------------------------------------------------------------------
-
-## Variáveis de Ambiente Necessárias
+### Variáveis de Ambiente Necessárias
 
 ### Variáveis da Aplicação (Runtime da Lambda)
 
@@ -156,20 +184,18 @@ Estas variáveis são utilizadas apenas no processo de deploy via GitHub Actions
 | DB_DSN | RDS | RDS → Databases → Endpoint           | `postgres://user:password@endpoint:5432/database?sslmode=require` |
 
 ---
-------------------------------------------------------------------------
+## Operação
 
-## Segurança
+### Segurança
 
 -   Senhas armazenadas com bcrypt
 -   JWT assinado com HS256
 -   Tokens possuem expiração configurável
 -   CPF validado antes da consulta ao banco
 
-------------------------------------------------------------------------
+---
 
-## Executando Localmente
-
-### Requisitos
+### Executando Localmente
 
 ### Requisitos
 
@@ -178,16 +204,19 @@ Estas variáveis são utilizadas apenas no processo de deploy via GitHub Actions
 
 ### Rodando
 
+```bash
 go run ./cmd/lambda
+```
 
 Ou utilizando SAM:
-
-sam build\
+```bash
+sam build
 sam local start-api
+```
 
-------------------------------------------------------------------------
+---
 
-## Testes
+### Testes
 
 Os testes dependem de um banco PostgreSQL que é iniciado via Docker Compose.
 Antes de executar os testes, suba o banco:
@@ -197,12 +226,12 @@ docker compose up -d
 go test ./...
 ```
 
-------------------------------------------------------------------------
+---
 
 ## Evoluções Futuras
 
 - Refresh token
 - MFA
 - Rate limit
-- Instrospecção de token
+- Introspecção de token
 - Suporte a outros métodos de autenticação
