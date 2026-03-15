@@ -130,6 +130,6 @@ jobs:
 
       - name: Show Lambda info
         run: |
-          STACK=oficina-serverless
+          STACK=oficina-serverless-v3
           aws cloudformation describe-stacks --stack-name "$STACK" --query "Stacks[0].StackStatus" --output text
           echo "Lambda function name: IdentityFunction"
